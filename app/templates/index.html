@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}AI SQL Chatbot - Chat{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: 70vh;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        background: white;
+    }
+    .chat-message {
+        padding: 1rem;
+        margin: 0.5rem;
+        border-radius: 0.5rem;
+    }
+    .user-message {
+        background: #e3f2fd;
+        margin-left: 2rem;
+    }
+    .bot-message {
+        background: #f8f9fa;
+        margin-right: 2rem;
+    }
+    .sql-query {
+        background: #282c34;
+        color: #abb2bf;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+    }
+    .result-table {
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Database Connection Panel -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Database Connections</h5>
+            </div>
+            <div class="card-body">
+                <select id="connectionSelect" class="form-select mb-3">
+                    <option value="">Select a connection...</option>
+                </select>
+                <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#newConnectionModal">
+                    New Connection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-body">
+                <!-- Chat Messages -->
+                <div id="chatContainer" class="chat-container mb-3">
+                    <div class="chat-message bot-message">
+                        Hello! I'm your AI SQL assistant. Please select a database connection to get started.
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <form id="queryForm" class="mt-3">
+                    <div class="input-group">
+                        <input type="text" id="queryInput" class="form-control" placeholder="Ask a question about your data..." disabled>
+                        <button type="submit" class="btn btn-primary" disabled>
+                            <i class="bi bi-send"></i> Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Connection Modal -->
+<div class="modal fade" id="newConnectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Database Connection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="connectionForm">
+                    <div class="mb-3">
+                        <label class="form-label">Connection Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Database Type</label>
+                        <select class="form-select" name="engine" required>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlite">SQLite</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 db-field">
+                        <label class="form-label">Host</label>
+                        <input type="text" class="form-control" name="host">
+                    </div>
+                    <div class="mb-3 db-field">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-control" name="port">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Database Name</label>
+                        <input type="text" class="form-control" name="database" required>
+                    </div>
+                    <div class="mb-3 db-field">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username">
+                    </div>
+                    <div class="mb-3 db-field">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" name="password">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveConnection">Save Connection</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Global variables
+    let currentConnection = null;
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadConnections();
+        setupEventListeners();
+    });
+
+    // Load database connections
+    async function loadConnections() {
+        try {
+            const response = await fetch('/api/connections');
+            const connections = await response.json();
+            
+            const select = document.getElementById('connectionSelect');
+            select.innerHTML = '<option value="">Select a connection...</option>';
+            
+            connections.forEach(conn => {
+                const option = document.createElement('option');
+                option.value = conn.id;
+                option.textContent = conn.name;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to load connections:', error);
+            showError('Failed to load database connections');
+        }
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Connection selection
+        document.getElementById('connectionSelect').addEventListener('change', function(e) {
+            currentConnection = e.target.value;
+            const queryInput = document.getElementById('queryInput');
+            const submitButton = document.querySelector('#queryForm button');
+            
+            queryInput.disabled = !currentConnection;
+            submitButton.disabled = !currentConnection;
+            
+            if (currentConnection) {
+                addMessage('bot', 'Connection selected! You can now ask questions about your data.');
+            }
+        });
+
+        // Query form submission
+        document.getElementById('queryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentConnection) return;
+
+            const queryInput = document.getElementById('queryInput');
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            addMessage('user', query);
+            queryInput.value = '';
+            queryInput.disabled = true;
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        connection_id: currentConnection,
+                        query: query
+                    })
+                });
+
+                const result = await response.json();
+                if (result.status === 'error') {
+                    addMessage('bot', `Error: ${result.error_message}`);
+                } else {
+                    // Add SQL query
+                    addMessage('bot', 'Generated SQL Query:', result.sql_query);
+                    
+                    // Add results table
+                    if (result.results.rows.length > 0) {
+                        addResultsTable(result.results.rows);
+                    } else {
+                        addMessage('bot', 'No results found.');
+                    }
+                }
+            } catch (error) {
+                console.error('Query failed:', error);
+                addMessage('bot', 'Failed to execute query. Please try again.');
+            }
+
+            queryInput.disabled = false;
+            queryInput.focus();
+        });
+
+        // New connection form
+        document.getElementById('saveConnection').addEventListener('click', async function() {
+            const form = document.getElementById('connectionForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('newConnectionModal'));
+                    modal.hide();
+                    form.reset();
+                    loadConnections();
+                    showSuccess('Connection created successfully!');
+                } else {
+                    const error = await response.json();
+                    showError(error.detail || 'Failed to create connection');
+                }
+            } catch (error) {
+                console.error('Failed to create connection:', error);
+                showError('Failed to create connection');
+            }
+        });
+    }
+
+    // Helper functions
+    function addMessage(type, text, code = null) {
+        const container = document.getElementById('chatContainer');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${type}-message`;
+
+        if (code) {
+            messageDiv.innerHTML = `
+                <p>${text}</p>
+                <pre class="sql-query">${code}</pre>
+            `;
+        } else {
+            messageDiv.textContent = text;
+        }
+
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function addResultsTable(rows) {
+        const container = document.getElementById('chatContainer');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message bot-message';
+
+        const table = document.createElement('div');
+        table.className = 'result-table table-responsive';
+        
+        const headers = Object.keys(rows[0]);
+        
+        table.innerHTML = `
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        ${headers.map(h => `<th>${h}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(row => `
+                        <tr>
+                            ${headers.map(h => `<td>${row[h]}</td>`).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        messageDiv.appendChild(table);
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function showSuccess(message) {
+        // Implement toast or alert for success message
+        alert(message);
+    }
+
+    function showError(message) {
+        // Implement toast or alert for error message
+        alert(message);
+    }
+</script>
+{% endblock %} 
