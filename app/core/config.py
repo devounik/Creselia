@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
 from functools import lru_cache
 import secrets
 
@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    SECURE_COOKIES: bool = False  # Set to True in production
+    
+    # CORS Settings
+    CORS_ORIGINS: List[str] = ["*"]
     
     # Hugging Face
     HUGGINGFACE_API_KEY: Optional[str] = None

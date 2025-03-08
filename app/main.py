@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from app.routers import database, query, schema, auth, connections, dashboard
 from app.core.config import settings
 from app.core.database import init_db
+from app.core.middleware import AuthMiddleware
 import logging
 import os
 
@@ -27,6 +28,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Auth middleware
+app.add_middleware(AuthMiddleware)
+
 # Create static directory if it doesn't exist
 os.makedirs("app/static", exist_ok=True)
 os.makedirs("app/static/css", exist_ok=True)
@@ -36,27 +40,18 @@ os.makedirs("app/static/js", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
+# Initialize database
+logger.info("Initializing database...")
+init_db()
+logger.info("Database initialized successfully!")
+
 # Include routers
-app.include_router(auth.router)  # Mount at root for auth pages
+app.include_router(auth.web_router)  # Mount web routes at root
+app.include_router(auth.api_router)  # Mount API routes at /api/auth
 app.include_router(dashboard.router)  # Mount at root for dashboard
-app.include_router(connections.router)  # Mount at root for dashboard
+app.include_router(connections.router)  # Mount at root for connections
 app.include_router(query.router, prefix="/api", tags=["query"])
 app.include_router(schema.router, prefix="/api", tags=["schema"])
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the database on application startup"""
-    logger.info("Initializing database...")
-    try:
-        init_db()
-        logger.info("Database initialized successfully!")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
-
-@app.get("/")
-async def root(request: Request):
-    return templates.TemplateResponse("landing.html", {"request": request})
 
 if __name__ == "__main__":
     import uvicorn

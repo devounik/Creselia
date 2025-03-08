@@ -99,7 +99,7 @@ def init_db() -> None:
             database_name = result.scalar()
             print(f"Connected to database: {database_name}")
             
-            # Create all tables without dropping existing ones
+            # Create tables only if they don't exist
             Base.metadata.create_all(bind=engine, checkfirst=True)
             print(f"Database tables verified/created successfully in {database_name}!")
             

@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.core.auth import require_auth
 from app.services.database import DatabaseService
 
 router = APIRouter()
@@ -13,7 +13,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def dashboard(
     request: Request,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_auth)
 ):
     """Render the dashboard page"""
     try:

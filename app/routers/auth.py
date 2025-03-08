@@ -1,65 +1,131 @@
-from fastapi import APIRouter, Request, Response, HTTPException, Depends, status
+from fastapi import APIRouter, Request, Response, HTTPException, Depends, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.auth import AuthService
-from fastapi.security import OAuth2PasswordRequestForm
 from app.schemas.auth import UserCreate, Token, UserResponse
+from app.core.config import settings
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+# Create two routers: one for web routes and one for API routes
+web_router = APIRouter(tags=["web"])
+api_router = APIRouter(prefix="/api/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
 
-@router.get("/", response_class=HTMLResponse)
+# Web routes
+@web_router.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
     return templates.TemplateResponse("landing.html", {"request": request})
 
-@router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+@web_router.get("/unauthorized", response_class=HTMLResponse)
+async def unauthorized_page(request: Request, next: str = "/dashboard"):
+    return templates.TemplateResponse("unauthorized.html", {"request": request, "next": next})
 
-@router.post("/login", response_model=Token)
-async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+@web_router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, next: str = "/dashboard"):
+    return templates.TemplateResponse("login.html", {"request": request, "next": next})
+
+@web_router.get("/signup", response_class=HTMLResponse)
+async def signup_page(request: Request, next: str = "/dashboard"):
+    return templates.TemplateResponse("signup.html", {"request": request, "next": next})
+
+@web_router.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.delete_cookie(key="access_token")
+    return response
+
+# API routes
+@api_router.post("/signup")
+async def signup(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    next: str = Form("/dashboard"),
     db: Session = Depends(get_db)
 ):
-    """Login user and return access token"""
-    auth_service = AuthService(db)
-    token = await auth_service.authenticate_user(form_data.username, form_data.password)
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return token
-
-@router.get("/signup", response_class=HTMLResponse)
-async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
-
-@router.post("/signup", response_model=UserResponse)
-async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Create new user"""
-    auth_service = AuthService(db)
     try:
-        user = await auth_service.create_user(user_data.dict())
-        return UserResponse(
-            id=user.id,
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            is_active=user.is_active
+        user_data = {
+            "email": email,
+            "password": password,
+            "first_name": first_name,
+            "last_name": last_name
+        }
+        
+        auth_service = AuthService(db)
+        user = auth_service.create_user(user_data)
+        token = await auth_service.authenticate_user(email, password)
+        
+        if not token:
+            return templates.TemplateResponse(
+                "signup.html",
+                {"request": request, "error": "Failed to authenticate after signup"},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
+        response = RedirectResponse(url=next, status_code=status.HTTP_302_FOUND)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {token.access_token}",
+            httponly=True,
+            secure=settings.SECURE_COOKIES,
+            samesite="lax",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
         )
+        return response
+        
     except HTTPException as e:
-        raise e
+        return templates.TemplateResponse(
+            "signup.html",
+            {"request": request, "error": e.detail},
+            status_code=e.status_code
+        )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating user: {str(e)}"
+        return templates.TemplateResponse(
+            "signup.html",
+            {"request": request, "error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-@router.get("/chat", response_class=HTMLResponse)
+@api_router.post("/login")
+async def login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next: str = Form("/dashboard"),
+    db: Session = Depends(get_db)
+):
+    try:
+        auth_service = AuthService(db)
+        token = await auth_service.authenticate_user(email, password)
+        if not token:
+            return templates.TemplateResponse(
+                "login.html",
+                {"request": request, "error": "Incorrect email or password"},
+                status_code=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        response = RedirectResponse(url=next, status_code=status.HTTP_302_FOUND)
+        response.set_cookie(
+            key="access_token",
+            value=f"Bearer {token.access_token}",
+            httponly=True,
+            secure=settings.SECURE_COOKIES,
+            samesite="lax",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+        return response
+        
+    except Exception as e:
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_router.get("/chat", response_class=HTMLResponse)
 async def chat_page(
     request: Request,
     db: Session = Depends(get_db)
@@ -86,10 +152,4 @@ async def chat_page(
     except HTTPException:
         response = RedirectResponse(url="/login", status_code=303)
         response.delete_cookie("access_token")
-        return response
-
-@router.get("/logout")
-async def logout():
-    response = RedirectResponse(url="/", status_code=303)
-    response.delete_cookie("access_token")
-    return response 
+        return response 

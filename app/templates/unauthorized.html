@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Unauthorized Access - AI SQL Chatbot{% endblock %}
+
+{% block extra_css %}
+<style>
+    .unauthorized-container {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: radial-gradient(circle at top right, rgba(121, 40, 202, 0.1), transparent),
+                    radial-gradient(circle at bottom left, rgba(255, 0, 128, 0.1), transparent);
+    }
+
+    .unauthorized-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 2.5rem;
+        width: 100%;
+        max-width: 480px;
+        backdrop-filter: blur(10px);
+        text-align: center;
+    }
+
+    .icon-large {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .return-link {
+        color: rgba(255, 255, 255, 0.7);
+        text-decoration: none;
+        margin-top: 1.5rem;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+
+    .return-link:hover {
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="unauthorized-container">
+    <div class="unauthorized-card">
+        <i class="bi bi-shield-lock icon-large"></i>
+        <h1 class="h3 mb-3">Unauthorized Access</h1>
+        <p class="text-white-50 mb-4">
+            This page requires authentication. Please log in to your account or create a new one to access this content.
+        </p>
+        <div class="btn-group">
+            <a href="/login?next={{ request.url.path }}" class="btn btn-gradient">Log In</a>
+            <a href="/signup?next={{ request.url.path }}" class="btn btn-outline">Sign Up</a>
+        </div>
+        <a href="/" class="return-link">
+            <i class="bi bi-arrow-left"></i> Return to Home
+        </a>
+    </div>
+</div>
+{% endblock %} 

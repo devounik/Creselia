@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from datetime import datetime
@@ -11,7 +11,6 @@ class User(Base):
     first_name = Column(String(100))
     last_name = Column(String(100))
     hashed_password = Column(String(255), nullable=False)
-    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
