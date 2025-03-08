@@ -1,32 +1,21 @@
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Float
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, JSON, Float, Text, ForeignKey
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+from app.core.database import Base
 from datetime import datetime
-
-Base = declarative_base()
-
-class DatabaseConnection(Base):
-    __tablename__ = "database_connections"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    engine = Column(String)  # postgresql, mysql, sqlite
-    host = Column(String)
-    port = Column(Integer)
-    database = Column(String)
-    username = Column(String)
-    password = Column(String)
-    schema = Column(JSON)  # Stores the database schema
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class QueryHistory(Base):
     __tablename__ = "query_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    connection_id = Column(Integer, index=True)
-    natural_query = Column(String)
-    sql_query = Column(String)
+    connection_id = Column(Integer, ForeignKey("connections.id", ondelete="CASCADE"))
+    natural_query = Column(Text, nullable=False)
+    sql_query = Column(Text, nullable=False)
     execution_time = Column(Float)
-    status = Column(String)  # success, error
-    error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow) 
+    status = Column(String(50))  # success, error
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship with connection
+    connection = relationship("Connection", back_populates="queries")
+    user = relationship("User", secondary="connections", back_populates="query_history") 

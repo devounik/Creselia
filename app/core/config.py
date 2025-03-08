@@ -9,30 +9,36 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AI SQL Chatbot"
     
     # Security
-    SECRET_KEY: str = secrets.token_hex(32)
+    SECRET_KEY: str = secrets.token_urlsafe(32)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Hugging Face
     HUGGINGFACE_API_KEY: Optional[str] = None
-    HUGGINGFACE_MODEL: str = "bigcode/starcoder"  # Default model
+    HUGGINGFACE_MODEL: str = "bigcode/starcoder"
     
-    # Database
+    # MySQL Database Settings
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = ""
-    MYSQL_DATABASE: str = "ai_sql_chatbot"
+    MYSQL_DATABASE: str = "collegeproject"
     
     @property
     def MYSQL_URL(self) -> str:
-        """Generate MySQL connection URL"""
-        return f"mysql+mysqlconnector://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+        """Generate MySQL connection URL with explicit charset and connection settings"""
+        return f"mysql+mysqlconnector://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}?charset=utf8mb4"
     
     # Connection Pool Settings
     MAX_CONNECTIONS_COUNT: int = 10
     MIN_CONNECTIONS_COUNT: int = 1
 
+    # Database settings
+    DATABASE_URL: str = "sqlite:///./app.db"
+    
+    # OpenAI settings
+    OPENAI_API_KEY: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
