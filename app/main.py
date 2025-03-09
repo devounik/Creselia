@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from app.routers import database, query, schema, auth, connections, dashboard
+from app.routers import database, query, schema, auth, connections, dashboard, chat
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.middleware import AuthMiddleware
@@ -52,6 +52,7 @@ app.include_router(dashboard.router)  # Mount at root for dashboard
 app.include_router(connections.router)  # Mount at root for connections
 app.include_router(query.router, prefix="/api", tags=["query"])
 app.include_router(schema.router, prefix="/api", tags=["schema"])
+app.include_router(chat.router)
 
 if __name__ == "__main__":
     import uvicorn
