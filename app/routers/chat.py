@@ -26,7 +26,7 @@ async def chat_page(
         )
     
     conn_service = ConnectionService(db)
-    db_connection = conn_service.get_connection(connection)
+    db_connection = conn_service.get_connection(connection, current_user.id)
     
     if not db_connection:
         raise HTTPException(
@@ -62,7 +62,7 @@ async def chat_message(
         )
     
     conn_service = ConnectionService(db)
-    db_connection = conn_service.get_connection(request["connection_id"])
+    db_connection = conn_service.get_connection(request["connection_id"], current_user.id)
     
     if not db_connection:
         raise HTTPException(
@@ -76,9 +76,12 @@ async def chat_message(
             detail="Not authorized to access this connection"
         )
     
-    chat_service = ChatService(db_connection)
+    chat_service = ChatService(db)
     try:
-        result = await chat_service.process_message(request["message"])
+        result = await chat_service.process_message(
+            message=request["message"],
+            connection=db_connection
+        )
         return JSONResponse(content=result)
     except Exception as e:
         raise HTTPException(

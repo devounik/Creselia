@@ -18,14 +18,14 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["*"]
     
     # Hugging Face
-    HUGGINGFACE_API_KEY: Optional[str] = None
-    HUGGINGFACE_MODEL: str = "bigcode/starcoder"
+    HUGGINGFACE_API_KEY: str
+    HUGGINGFACE_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.2"  # Using Mistral for SQL generation
     
     # MySQL Database Settings
     MYSQL_HOST: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
+    MYSQL_PASSWORD: str = "123456789"
     MYSQL_DATABASE: str = "collegeproject"
     
     @property
@@ -36,16 +36,17 @@ class Settings(BaseSettings):
     # Connection Pool Settings
     MAX_CONNECTIONS_COUNT: int = 10
     MIN_CONNECTIONS_COUNT: int = 1
-
-    # Database settings
-    DATABASE_URL: str = "sqlite:///./app.db"
     
-    # OpenAI settings
-    OPENAI_API_KEY: Optional[str] = None
+    # JWT settings
+    JWT_SECRET_KEY: str = secrets.token_urlsafe(32)  # Generate a secure secret key
+    JWT_ALGORITHM: str = "HS256"
     
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def check_huggingface_api_key(self):
         if not self.HUGGINGFACE_API_KEY:
@@ -56,7 +57,6 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    settings = Settings()
-    return settings
+    return Settings()
 
 settings = get_settings() 

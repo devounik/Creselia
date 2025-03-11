@@ -18,7 +18,8 @@ class QueryService:
     async def execute_query(
         self,
         connection: Connection,
-        sql_query: str
+        sql_query: str,
+        user_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """Execute a SQL query on the connected database"""
         start_time = time.time()
@@ -44,7 +45,8 @@ class QueryService:
                 connection.id,
                 sql_query,
                 execution_time,
-                "success"
+                "success",
+                user_id=user_id
             )
 
             return {
@@ -61,7 +63,8 @@ class QueryService:
                 sql_query,
                 execution_time,
                 "error",
-                str(e)
+                str(e),
+                user_id=user_id
             )
             raise Exception(f"Query execution failed: {str(e)}")
 
@@ -80,12 +83,14 @@ class QueryService:
 
         # Get total count
         total_count = self.db.query(QueryHistory).filter(
-            QueryHistory.connection_id == connection_id
+            QueryHistory.connection_id == connection_id,
+            QueryHistory.user_id == user_id
         ).count()
 
         # Get queries
         queries = self.db.query(QueryHistory).filter(
-            QueryHistory.connection_id == connection_id
+            QueryHistory.connection_id == connection_id,
+            QueryHistory.user_id == user_id
         ).order_by(
             QueryHistory.created_at.desc()
         ).offset(offset).limit(limit).all()
@@ -103,11 +108,13 @@ class QueryService:
         sql_query: str,
         execution_time: float,
         status: str,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
+        user_id: Optional[int] = None
     ) -> None:
         """Record a query execution in the history"""
         history = QueryHistory(
             connection_id=connection_id,
+            user_id=user_id,
             sql_query=sql_query,
             execution_time=execution_time,
             status=status,
@@ -165,7 +172,7 @@ Return only the SQL query without any explanation."""
             # Execute the query
             start_time = datetime.utcnow()
             try:
-                results = await self.execute_query(connection, sql_query)
+                results = await self.execute_query(connection, sql_query, user_id=user_id)
                 execution_time = (datetime.utcnow() - start_time).total_seconds()
                 status = "success"
                 error_message = None
@@ -178,6 +185,7 @@ Return only the SQL query without any explanation."""
             # Store query history
             query_history = QueryHistory(
                 connection_id=connection_id,
+                user_id=user_id,
                 natural_query=query,
                 sql_query=sql_query,
                 execution_time=execution_time,

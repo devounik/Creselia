@@ -20,7 +20,17 @@ class AuthService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_user_by_email(self, email: str) -> User:
+    def get_user_by_id(self, user_id: int) -> Optional[User]:
+        """Get a user by ID"""
+        try:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            logger.debug(f"Found user with ID {user_id}: {user is not None}")
+            return user
+        except Exception as e:
+            logger.error(f"Error getting user by ID: {e}")
+            return None
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
         """Get a user by email"""
         try:
             user = self.db.query(User).filter(User.email == email).first()
@@ -30,44 +40,44 @@ class AuthService:
             logger.error(f"Error getting user by email: {e}")
             return None
 
-    def create_user(self, user_data: dict) -> User:
-        """Create a new user"""
+    def get_current_user(self, token: str) -> User:
+        """Get the current user from a JWT token"""
         try:
-            # Check if user already exists
-            if self.get_user_by_email(user_data["email"]):
-                logger.warning(f"User with email {user_data['email']} already exists")
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id is None:
+                logger.warning("Token payload missing 'sub' claim")
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email already registered"
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication token",
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
-            
-            # Hash password and create user
-            hashed_password = get_password_hash(user_data["password"])
-            user = User(
-                email=user_data["email"],
-                first_name=user_data["first_name"],
-                last_name=user_data["last_name"],
-                hashed_password=hashed_password
-            )
-            
-            logger.info(f"Creating new user with email: {user_data['email']}")
-            self.db.add(user)
-            self.db.commit()
-            self.db.refresh(user)
-            logger.info(f"Successfully created user with ID: {user.id}")
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user is None:
+                logger.warning(f"No user found for ID {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
             return user
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Failed to create user: {e}")
-            self.db.rollback()
+        except JWTError as e:
+            logger.error(f"JWT decode error: {e}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to create user: {str(e)}"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in get_current_user: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication error",
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
-    async def authenticate_user(self, email: str, password: str) -> Token:
-        """Authenticate a user and return access token"""
+    async def authenticate_user(self, email: str, password: str) -> Optional[Token]:
+        """Authenticate a user and return a JWT token"""
         try:
             user = self.get_user_by_email(email)
             if not user:
@@ -77,49 +87,52 @@ class AuthService:
             if not verify_password(password, user.hashed_password):
                 logger.warning(f"Authentication failed: Invalid password for email {email}")
                 return None
+
+            # Create access token
+            access_token = create_access_token(
+                data={"sub": str(user.id)},
+                expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            )
             
-            access_token = create_access_token(data={"sub": str(user.id)})
             logger.info(f"Successfully authenticated user: {email}")
             return Token(access_token=access_token, token_type="bearer")
+            
         except Exception as e:
-            logger.error(f"Error during authentication: {e}")
+            logger.error(f"Authentication error: {e}")
             return None
 
-    def get_current_user(self, token: str) -> User:
-        """Get current user from token"""
+    def create_user(self, user_data: Dict) -> User:
+        """Create a new user"""
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            user_id: int = payload.get("sub")
-            if user_id is None:
-                logger.warning("Token payload does not contain user ID")
+            # Check if user already exists
+            if self.get_user_by_email(user_data["email"]):
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Could not validate credentials",
-                    headers={"WWW-Authenticate": "Bearer"},
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
                 )
             
-            user = self.db.query(User).filter(User.id == user_id).first()
-            if user is None:
-                logger.warning(f"User not found for ID from token: {user_id}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="User not found",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            
-            logger.debug(f"Successfully retrieved current user: {user.email}")
-            return user
-        except JWTError as e:
-            logger.error(f"JWT validation error: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
+            # Create new user
+            hashed_password = get_password_hash(user_data["password"])
+            user = User(
+                email=user_data["email"],
+                hashed_password=hashed_password,
+                first_name=user_data.get("first_name", ""),
+                last_name=user_data.get("last_name", "")
             )
+            
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            
+            logger.info(f"Created new user: {user.email}")
+            return user
+            
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error getting current user: {e}")
+            logger.error(f"Error creating user: {e}")
+            self.db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error creating user"
             ) 

@@ -1,16 +1,39 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from app.routers import database, query, schema, auth, connections, dashboard, chat
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.middleware import AuthMiddleware
+from app.core.dependencies import get_templates, templates
 import logging
 import os
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# Configure SQLAlchemy logging
+sqlalchemy_loggers = [
+    'sqlalchemy.engine',
+    'sqlalchemy.pool',
+    'sqlalchemy.dialects',
+    'sqlalchemy.orm'
+]
+
+for logger_name in sqlalchemy_loggers:
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.ERROR)
+    logger.propagate = False
+
+# Set uvicorn access logs to WARNING to reduce noise
+logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
+logging.getLogger('uvicorn.error').setLevel(logging.WARNING)
+
+# Keep our application logging at INFO level
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -22,7 +45,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,14 +54,13 @@ app.add_middleware(
 # Auth middleware
 app.add_middleware(AuthMiddleware)
 
-# Create static directory if it doesn't exist
-os.makedirs("app/static", exist_ok=True)
-os.makedirs("app/static/css", exist_ok=True)
-os.makedirs("app/static/js", exist_ok=True)
+# Create static directory structure
+static_dirs = ["css", "js", "images"]
+for dir_name in static_dirs:
+    os.makedirs(f"app/static/{dir_name}", exist_ok=True)
 
-# Static files and templates
+# Static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
 
 # Initialize database
 logger.info("Initializing database...")
@@ -46,14 +68,29 @@ init_db()
 logger.info("Database initialized successfully!")
 
 # Include routers
-app.include_router(auth.web_router)  # Mount web routes at root
-app.include_router(auth.api_router)  # Mount API routes at /api/auth
-app.include_router(dashboard.router)  # Mount at root for dashboard
-app.include_router(connections.router)  # Mount at root for connections
-app.include_router(query.router, prefix="/api", tags=["query"])
-app.include_router(schema.router, prefix="/api", tags=["schema"])
-app.include_router(chat.router)
+app.include_router(auth.web_router)  # Web routes at root
+app.include_router(auth.api_router)  # API routes at /api/auth
+app.include_router(dashboard.router)  # Dashboard routes
+app.include_router(connections.router)  # Connection management routes
+app.include_router(query.web_router)  # Query web interface at /query
+app.include_router(query.api_router)  # Query API at /api/query
+app.include_router(schema.router, prefix="/api", tags=["schema"])  # Schema API
+app.include_router(chat.router)  # Chat interface
+
+# Root route
+@app.get("/")
+async def root(request: Request):
+    """Render the home page"""
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request}
+    )
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True) 
+    uvicorn.run(
+        "app.main:app",
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=settings.DEBUG
+    ) 

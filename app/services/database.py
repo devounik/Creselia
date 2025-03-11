@@ -15,62 +15,39 @@ except ImportError:
     psycopg2 = None
     PostgreSQLError = Exception
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DatabaseService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_connection(self, connection_data: Dict[str, Any]) -> Connection:
-        """Create a new database connection and store its details"""
-        try:
-            # Create new connection
-            connection = Connection(
-                name=connection_data["name"],
-                description=connection_data.get("description"),
-                db_type=connection_data["db_type"],
-                host=connection_data.get("host"),
-                port=connection_data.get("port"),
-                database=connection_data["database"],
-                username=connection_data.get("username"),
-                password=connection_data.get("password"),  # Will be encrypted by the model
-                user_id=connection_data["user_id"]
-            )
-
-            # Test the connection
-            self.test_connection(connection)
-
-            # Get the schema
-            schema = self.get_schema(connection)
-            connection.schema = schema
-
-            self.db.add(connection)
-            self.db.commit()
-            self.db.refresh(connection)
-            return connection
-
-        except Exception as e:
-            self.db.rollback()
-            raise Exception(f"Failed to create database connection: {str(e)}")
-
     def get_connections(self, user_id: int) -> List[Connection]:
         """Get all stored database connections for a user"""
-        return self.db.query(Connection).filter(Connection.user_id == user_id).all()
+        try:
+            connections = self.db.query(Connection).filter(Connection.user_id == user_id).all()
+            logger.debug(f"Retrieved {len(connections)} connections for user {user_id}")
+            return connections
+        except Exception as e:
+            logger.error(f"Error retrieving connections for user {user_id}: {e}")
+            return []
 
     def get_connection(self, connection_id: int, user_id: int) -> Optional[Connection]:
         """Get a connection by ID and verify ownership"""
-        return self.db.query(Connection).filter(
-            Connection.id == connection_id,
-            Connection.user_id == user_id
-        ).first()
-
-    def delete_connection(self, connection_id: int, user_id: int) -> bool:
-        """Delete a database connection"""
-        connection = self.get_connection(connection_id, user_id)
-        if connection:
-            self.db.delete(connection)
-            self.db.commit()
-            return True
-        return False
+        try:
+            connection = self.db.query(Connection).filter(
+                Connection.id == connection_id,
+                Connection.user_id == user_id
+            ).first()
+            if connection:
+                logger.debug(f"Retrieved connection {connection_id} for user {user_id}")
+            else:
+                logger.warning(f"Connection {connection_id} not found for user {user_id}")
+            return connection
+        except Exception as e:
+            logger.error(f"Error retrieving connection {connection_id} for user {user_id}: {e}")
+            return None
 
     def test_connection(self, connection: Connection) -> bool:
         """Test if a database connection is valid"""
@@ -102,14 +79,68 @@ class DatabaseService:
             # Update last used timestamp and status
             connection.last_used = datetime.utcnow()
             connection.is_active = True
+            self.db.commit()
+            logger.info(f"Successfully tested connection {connection.id}")
             return True
         except (MySQLError, PostgreSQLError, sqlite3.Error) as e:
             # Update connection status
             connection.is_active = False
+            self.db.commit()
+            logger.error(f"Connection test failed for connection {connection.id}: {e}")
             raise Exception(f"Connection test failed: {str(e)}")
         finally:
             if conn:
                 conn.close()
+
+    def create_connection(self, connection_data: Dict[str, Any]) -> Connection:
+        """Create a new database connection and store its details"""
+        try:
+            # Create new connection
+            connection = Connection(
+                name=connection_data["name"],
+                description=connection_data.get("description"),
+                db_type=connection_data["db_type"],
+                host=connection_data.get("host"),
+                port=connection_data.get("port"),
+                database=connection_data["database"],
+                username=connection_data.get("username"),
+                password=connection_data.get("password"),
+                user_id=connection_data["user_id"]
+            )
+
+            # Test the connection
+            self.test_connection(connection)
+
+            # Get the schema
+            schema = self.get_schema(connection)
+            connection._schema_info = json.dumps(schema)
+
+            self.db.add(connection)
+            self.db.commit()
+            self.db.refresh(connection)
+            logger.info(f"Successfully created connection {connection.id}")
+            return connection
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to create database connection: {e}")
+            raise Exception(f"Failed to create database connection: {str(e)}")
+
+    def delete_connection(self, connection_id: int, user_id: int) -> bool:
+        """Delete a database connection"""
+        try:
+            connection = self.get_connection(connection_id, user_id)
+            if connection:
+                self.db.delete(connection)
+                self.db.commit()
+                logger.info(f"Successfully deleted connection {connection_id}")
+                return True
+            logger.warning(f"Connection {connection_id} not found for deletion")
+            return False
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to delete connection {connection_id}: {e}")
+            return False
 
     def get_schema(self, connection: Connection) -> Dict[str, Any]:
         """Get the schema of a database"""
@@ -217,8 +248,10 @@ class DatabaseService:
                         ]
                     }
             
+            logger.info(f"Successfully retrieved schema for connection {connection.id}")
             return schema
         except (MySQLError, PostgreSQLError, sqlite3.Error) as e:
+            logger.error(f"Failed to get schema for connection {connection.id}: {e}")
             raise Exception(f"Failed to get schema: {str(e)}")
         finally:
             if cursor:
@@ -271,11 +304,13 @@ class DatabaseService:
             connection.last_used = datetime.utcnow()
             self.db.commit()
 
+            logger.info(f"Successfully executed query for connection {connection.id}")
             return {
                 "results": results,
                 "rowCount": len(results) if results else 0
             }
         except (MySQLError, PostgreSQLError, sqlite3.Error) as e:
+            logger.error(f"Query execution failed for connection {connection.id}: {e}")
             raise Exception(f"Query execution failed: {str(e)}")
         finally:
             if cursor:

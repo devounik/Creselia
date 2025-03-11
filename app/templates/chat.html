@@ -181,31 +181,45 @@
         
         if (typeof content === 'string') {
             messageContent.textContent = content;
-        } else {
-            // Handle SQL results
-            if (content.sql) {
-                const codeBlock = document.createElement('div');
-                codeBlock.className = 'code-block';
-                codeBlock.textContent = content.sql;
-                messageContent.appendChild(codeBlock);
+        } else if (content.type === 'table_description') {
+            // Handle table description
+            const pre = document.createElement('pre');
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.fontFamily = 'monospace';
+            pre.textContent = content.message;
+            messageContent.appendChild(pre);
+        } else if (content.success === false) {
+            messageContent.textContent = content.error || 'An error occurred';
+            messageContent.style.color = '#ff4444';
+        } else if (content.success === true) {
+            // Handle successful SQL query results
+            if (content.message) {
+                const explanation = document.createElement('p');
+                explanation.textContent = content.message;
+                messageContent.appendChild(explanation);
             }
             
-            if (content.results) {
+            if (content.sql) {
+                const sqlCode = document.createElement('div');
+                sqlCode.className = 'code-block';
+                sqlCode.textContent = content.sql;
+                messageContent.appendChild(sqlCode);
+            }
+            
+            if (content.results && content.results.columns && content.results.rows) {
                 const table = document.createElement('table');
                 table.className = 'result-table';
                 
                 // Add headers
-                if (content.results.columns) {
-                    const thead = document.createElement('thead');
-                    const headerRow = document.createElement('tr');
-                    content.results.columns.forEach(column => {
-                        const th = document.createElement('th');
-                        th.textContent = column;
-                        headerRow.appendChild(th);
-                    });
-                    thead.appendChild(headerRow);
-                    table.appendChild(thead);
-                }
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                content.results.columns.forEach(column => {
+                    const th = document.createElement('th');
+                    th.textContent = column;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
                 
                 // Add data rows
                 const tbody = document.createElement('tbody');
@@ -213,7 +227,7 @@
                     const tr = document.createElement('tr');
                     row.forEach(cell => {
                         const td = document.createElement('td');
-                        td.textContent = cell;
+                        td.textContent = cell === null ? 'NULL' : cell;
                         tr.appendChild(td);
                     });
                     tbody.appendChild(tr);
@@ -222,17 +236,19 @@
                 
                 messageContent.appendChild(table);
             }
+        } else {
+            messageContent.textContent = 'Unexpected response format';
+            messageContent.style.color = '#ff4444';
         }
         
-        const messageTime = document.createElement('div');
-        messageTime.className = 'message-time';
-        messageTime.textContent = new Date(timestamp).toLocaleTimeString();
-        
         messageDiv.appendChild(messageContent);
-        messageDiv.appendChild(messageTime);
-        chatMessages.appendChild(messageDiv);
         
-        // Scroll to bottom
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
+        messageDiv.appendChild(timeDiv);
+        
+        chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
@@ -246,6 +262,7 @@
         messageInput.value = '';
 
         try {
+            console.log('Sending message:', message);
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -258,14 +275,19 @@
             });
 
             if (!response.ok) {
-                throw new Error('Failed to send message');
+                throw new Error(`Server responded with status ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
+            console.log('Received response:', data);
             addMessage(data);
 
         } catch (error) {
-            addMessage('Error: ' + error.message);
+            console.error('Error in sendMessage:', error);
+            addMessage({
+                success: false,
+                error: error.message
+            });
         }
     }
 
