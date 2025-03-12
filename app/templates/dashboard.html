@@ -5,35 +5,45 @@
 {% block extra_css %}
 <style>
     .connection-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
         border-radius: 16px;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .connection-card:hover {
         transform: translateY(-2px);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: var(--card-bg);
+        border-color: var(--text-muted);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .add-connection {
-        border: 2px dashed rgba(255, 255, 255, 0.1);
+        border: 2px dashed var(--border-color);
         display: flex;
         align-items: center;
         justify-content: center;
         min-height: 200px;
         cursor: pointer;
+        background: var(--card-bg);
     }
 
     .add-connection:hover {
-        border-color: var(--primary-gradient);
-        background: rgba(255, 255, 255, 0.02);
+        border-color: #3a7bd5;
+        background: var(--card-bg);
     }
 
     .db-icon {
         font-size: 2.5rem;
         background: var(--secondary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .connection-icon i {
+        font-size: 1.5rem;
+        background: var(--primary-gradient);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -46,28 +56,28 @@
     }
 
     .modal-content {
-        background: #111;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--modal-bg);
+        border: 1px solid var(--border-color);
     }
 
     .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--border-color);
     }
 
     .modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--border-color);
     }
 
     .form-select {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: white;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        color: var(--text-color);
     }
 
     .form-select:focus {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.2);
-        color: white;
+        background: var(--input-bg);
+        border-color: var(--border-color);
+        color: var(--text-color);
         box-shadow: none;
     }
 
@@ -78,13 +88,13 @@
     }
 
     .custom-alert-modal .modal-content {
-        background: #111;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--modal-bg);
+        border: 1px solid var(--border-color);
         border-radius: 16px;
     }
 
     .custom-alert-modal .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid var(--border-color);
         padding: 1.5rem;
     }
 
@@ -93,7 +103,7 @@
     }
 
     .custom-alert-modal .modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--border-color);
         padding: 1rem 1.5rem;
     }
 
@@ -119,6 +129,7 @@
     /* Status Modal Styles */
     .status-modal .modal-content {
         border-radius: 16px;
+        background: var(--modal-bg);
     }
 
     .status-modal.success .modal-content {
@@ -151,7 +162,7 @@
     .testing-spinner {
         width: 3rem;
         height: 3rem;
-        border: 3px solid rgba(255, 255, 255, 0.1);
+        border: 3px solid var(--border-color);
         border-radius: 50%;
         border-top-color: #7928CA;
         animation: spin 1s linear infinite;
@@ -162,6 +173,51 @@
         to {
             transform: rotate(360deg);
         }
+    }
+
+    .connection-details {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        background: var(--modal-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        color: var(--text-color);
+    }
+
+    .connection-card:hover .connection-details {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .btn-outline-primary {
+        color: #3a7bd5;
+        border-color: #3a7bd5;
+    }
+
+    .btn-outline-primary:hover {
+        background: #3a7bd5;
+        color: white;
+        border-color: #3a7bd5;
+    }
+
+    .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: white;
+        border-color: #dc3545;
     }
 </style>
 {% endblock %}
@@ -177,23 +233,40 @@
 
     <div class="row g-4">
         {% for connection in connections %}
-        <div class="col-md-4">
-            <div class="connection-card p-4 position-relative">
-                <span class="status-badge badge {% if connection.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                    {{ "Active" if connection.is_active else "Inactive" }}
-                </span>
-                <div class="text-center mb-3">
-                    <i class="bi bi-database db-icon mb-3"></i>
-                    <h5 class="mb-1">{{ connection.name }}</h5>
-                    <p class="text-white-50 small mb-3">{{ connection.description }}</p>
+        <div class="col-md-4 mb-4">
+            <div class="connection-card card">
+                <div class="connection-details">
+                    <div class="mb-2">
+                        <strong>Host:</strong> {{ connection.host }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Port:</strong> {{ connection.port }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Database:</strong> {{ connection.database }}
+                    </div>
+                    <div>
+                        <strong>User:</strong> {{ connection.username }}
+                    </div>
                 </div>
-                <div class="d-flex justify-content-between">
-                    <a href="/chat?connection={{ connection.id }}" class="btn btn-gradient">
-                        <i class="bi bi-chat"></i> Chat
-                    </a>
-                    <button class="btn btn-outline" data-connection-id="{{ connection.id }}">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="connection-icon me-3">
+                            <i class="bi bi-database-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">{{ connection.name }}</h5>
+                            <small class="text-muted">{{ connection.database_type }}</small>
+                        </div>
+                    </div>
+                    <div class="connection-actions">
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="testConnection('{{ connection.id }}')">
+                            <i class="bi bi-lightning-charge"></i> Test
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteConnection('{{ connection.id }}')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

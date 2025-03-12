@@ -1,90 +1,422 @@
 {% extends "base.html" %}
 
-{% block title %}AI SQL Chatbot - Natural Language to SQL{% endblock %}
+{% block title %}QueryAI - Natural Language to SQL{% endblock %}
 
 {% block extra_css %}
 <style>
     .hero {
-        padding: 120px 0;
-        background: radial-gradient(circle at top right, rgba(121, 40, 202, 0.2), transparent),
-                    radial-gradient(circle at bottom left, rgba(255, 0, 128, 0.2), transparent);
+        padding: 100px 0;
+        background: linear-gradient(to bottom, 
+            var(--bg-color),
+            var(--bg-color)
+        );
+        text-align: center;
         position: relative;
-        overflow: hidden;
+    }
+
+    .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+    }
+
+    .hero p {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        max-width: 600px;
+        margin: 0 auto 2rem;
     }
 
     .feature-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 2rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        height: 100%;
         transition: all 0.3s ease;
     }
 
     .feature-card:hover {
         transform: translateY(-5px);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.2);
+        border-color: var(--text-muted);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    .icon-gradient {
-        background: var(--secondary-gradient);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        font-size: 2.5rem;
+    .feature-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--primary-gradient);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+        color: var(--text-color);
+        margin-bottom: 1rem;
+    }
+
+    .feature-card p {
+        color: var(--text-muted);
+    }
+
+    .demo-section {
+        padding: 100px 0;
+        background: var(--bg-color);
+    }
+
+    .demo-image {
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        max-width: 100%;
+        height: auto;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 3rem;
+    }
+
+    @media (max-width: 768px) {
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .demo-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .demo-header {
+        background: var(--modal-bg);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .demo-dots {
+        display: flex;
+        gap: 6px;
+        margin-right: 16px;
+    }
+
+    .demo-dots span {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .demo-dots span:nth-child(1) { background: #ff5f57; }
+    .demo-dots span:nth-child(2) { background: #febc2e; }
+    .demo-dots span:nth-child(3) { background: #28c840; }
+
+    .demo-title {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .demo-content {
+        padding: 24px;
+    }
+
+    .chat-message {
+        margin-bottom: 24px;
+    }
+
+    .message-content {
+        padding: 16px;
+        border-radius: 8px;
+        max-width: 100%;
+        color: var(--text-color);
+    }
+
+    .user-message .message-content {
+        background: rgba(58, 123, 213, 0.1);
+        border: 1px solid rgba(58, 123, 213, 0.2);
+        margin-left: auto;
+        margin-right: 0;
+    }
+
+    .ai-message .message-content {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+    }
+
+    .sql-conversion {
+        margin-bottom: 16px;
+    }
+
+    .conversion-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .sql-code {
+        background: var(--modal-bg);
+        border-radius: 6px;
+        padding: 12px;
+        margin: 0;
+        font-size: 13px;
+        color: #00d2ff;
+        white-space: pre-wrap;
+    }
+
+    .result-preview {
+        background: var(--card-bg);
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .result-header {
+        padding: 8px 12px;
+        background: var(--modal-bg);
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .result-table {
+        padding: 12px;
+        overflow-x: auto;
+    }
+
+    .result-table table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .result-table th,
+    .result-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .result-table th {
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .result-table td {
+        color: var(--text-color);
+    }
+
+    @media (max-width: 768px) {
+        .demo-container {
+            margin-top: 32px;
+        }
+    }
+
+    .text-white-50 {
+        color: var(--text-muted) !important;
+    }
+
+    .feature-icon i {
+        color: white;
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Hero Section -->
 <section class="hero">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-7">
-                <h1 class="display-4 fw-bold mb-4">
-                    Transform Your <span class="gradient-text">Database Interactions</span> with Natural Language
-                </h1>
-                <p class="lead mb-5 text-white-50">
-                    Chat with your databases using natural language. Get instant SQL queries, explore schemas, and manage multiple database connections - all in one place.
-                </p>
-                <div class="d-flex gap-3">
-                    <a href="/signup" class="btn btn-gradient">Get Started</a>
-                    <a href="#features" class="btn btn-outline">Learn More</a>
+        <h1>Talk to your database in<br>plain English</h1>
+        <p>QueryAI converts your natural language into SQL queries, making database interactions simple and accessible for everyone.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="/signup" class="btn btn-gradient">Get Started</a>
+            <a href="#demo" class="btn btn-outline">Learn More</a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="gradient-text mb-4">How It Works</h2>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-4">
+                <div class="feature-card text-center">
+                    <div class="feature-icon mx-auto">
+                        <i class="bi bi-database-fill text-white"></i>
+                    </div>
+                    <h3 class="h4 mb-3">Connect Your Database</h3>
+                    <p class="text-white-50">Set up your connection details securely. We support MySQL, PostgreSQL, and more.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card text-center">
+                    <div class="feature-icon mx-auto">
+                        <i class="bi bi-chat-text-fill text-white"></i>
+                    </div>
+                    <h3 class="h4 mb-3">Ask in Plain English</h3>
+                    <p class="text-white-50">Type your question naturally. Our AI understands and converts it to SQL.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card text-center">
+                    <div class="feature-icon mx-auto">
+                        <i class="bi bi-graph-up text-white"></i>
+                    </div>
+                    <h3 class="h4 mb-3">Get Instant Results</h3>
+                    <p class="text-white-50">View your data instantly with clean visualizations and export options.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section id="features" class="py-5">
+<!-- Demo Section -->
+<section id="demo" class="demo-section">
     <div class="container">
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <i class="bi bi-chat-dots icon-gradient mb-4"></i>
-                    <h3>Natural Language Queries</h3>
-                    <p class="text-white-50">
-                        Transform your questions into SQL queries instantly. No more writing complex SQL statements manually.
-                    </p>
+        <div class="row align-items-center">
+            <div class="col-lg-5">
+                <h2 class="gradient-text mb-4">See It In Action</h2>
+                <p class="text-white-50 mb-4">Experience how easy it is to query your database with natural language.</p>
+                <div class="d-flex gap-3">
+                    <a href="/signup" class="btn btn-gradient">Try It Now</a>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <i class="bi bi-database icon-gradient mb-4"></i>
-                    <h3>Multiple Databases</h3>
-                    <p class="text-white-50">
-                        Connect to MySQL, PostgreSQL, or SQLite databases. Manage all your connections in one secure dashboard.
-                    </p>
+            <div class="col-lg-7">
+                <div class="demo-container">
+                    <div class="demo-header">
+                        <div class="demo-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <div class="demo-title">Natural Language to SQL Conversion</div>
+                    </div>
+                    <div class="demo-content">
+                        <div class="chat-message user-message">
+                            <div class="message-content">
+                                Show me all customers who made purchases over $1000 last month
+                            </div>
+                        </div>
+                        <div class="chat-message ai-message">
+                            <div class="message-content">
+                                <div class="sql-conversion">
+                                    <div class="conversion-status">
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                        Generated SQL Query:
+                                    </div>
+                                    <pre class="sql-code"><code>SELECT 
+    c.customer_name,
+    SUM(o.total_amount) as total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+    AND o.total_amount > 1000
+GROUP BY c.customer_id
+ORDER BY total_spent DESC;</code></pre>
+                                </div>
+                                <div class="result-preview">
+                                    <div class="result-header">
+                                        <i class="bi bi-table"></i>
+                                        Results (3 rows)
+                                    </div>
+                                    <div class="result-table">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>customer_name</th>
+                                                    <th>total_spent</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>John Smith</td>
+                                                    <td>$2,450.00</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Sarah Johnson</td>
+                                                    <td>$1,875.50</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Mike Wilson</td>
+                                                    <td>$1,234.25</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <i class="bi bi-shield-check icon-gradient mb-4"></i>
-                    <h3>Secure Access</h3>
-                    <p class="text-white-50">
-                        Enterprise-grade security for your database connections. Your data stays private and protected.
-                    </p>
+        </div>
+    </div>
+</section>
+
+<!-- Additional Features Grid -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="gradient-text">Powerful Features</h2>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-hdd-network-fill text-white"></i>
                 </div>
+                <h3 class="h5 mb-3">Multi-Database Support</h3>
+                <p class="text-white-50">Connect to MySQL, PostgreSQL, SQLite, and more databases seamlessly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-shield-lock-fill text-white"></i>
+                </div>
+                <h3 class="h5 mb-3">Enterprise-Grade Security</h3>
+                <p class="text-white-50">End-to-end encryption, role-based access control, and secure credential storage.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-bar-chart-fill text-white"></i>
+                </div>
+                <h3 class="h5 mb-3">Advanced Visualizations</h3>
+                <p class="text-white-50">Auto-generated charts and graphs from your query results.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-people-fill text-white"></i>
+                </div>
+                <h3 class="h5 mb-3">Team Collaboration</h3>
+                <p class="text-white-50">Share queries and results with team members securely.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-clock-history text-white"></i>
+                </div>
+                <h3 class="h5 mb-3">Query History</h3>
+                <p class="text-white-50">Track and reuse previous queries with full execution logs.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-robot text-white"></i>
+                </div>
+                <h3 class="h5 mb-3">AI Integration</h3>
+                <p class="text-white-50">Powered by advanced language models for accurate SQL generation.</p>
             </div>
         </div>
     </div>

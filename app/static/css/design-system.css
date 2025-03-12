@@ -1,0 +1,127 @@
+:root {
+  /* Light Theme Colors */
+  --primary-light: #2563eb;
+  --primary-light-rgb: 37, 99, 235;
+  --secondary-light: #4f46e5;
+  --secondary-light-rgb: 79, 70, 229;
+  --background-light: #f9fafb;
+  --surface-light: #ffffff;
+  --text-primary-light: #111827;
+  --text-secondary-light: #6b7280;
+  --border-light: #e5e7eb;
+  --error-light: #ef4444;
+  --error-light-rgb: 239, 68, 68;
+  --success-light: #10b981;
+  --success-light-rgb: 16, 185, 129;
+  
+  /* Dark Theme Colors */
+  --primary-dark: #3b82f6;
+  --primary-dark-rgb: 59, 130, 246;
+  --secondary-dark: #6366f1;
+  --secondary-dark-rgb: 99, 102, 241;
+  --background-dark: #111827;
+  --surface-dark: #1f2937;
+  --text-primary-dark: #f9fafb;
+  --text-secondary-dark: #9ca3af;
+  --border-dark: #374151;
+  --error-dark: #f87171;
+  --error-dark-rgb: 248, 113, 113;
+  --success-dark: #34d399;
+  --success-dark-rgb: 52, 211, 153;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-xxl: 32px;
+  
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+  --border-radius-xl: 12px;
+  --border-radius-circle: 50%;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+}
+
+/* Default to light theme */
+body {
+  --primary: var(--primary-light);
+  --primary-rgb: var(--primary-light-rgb);
+  --secondary: var(--secondary-light);
+  --secondary-rgb: var(--secondary-light-rgb);
+  --background: var(--background-light);
+  --surface: var(--surface-light);
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --border: var(--border-light);
+  --error: var(--error-light);
+  --error-rgb: var(--error-light-rgb);
+  --success: var(--success-light);
+  --success-rgb: var(--success-light-rgb);
+  
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* Dark theme class */
+body.dark-theme {
+  --primary: var(--primary-dark);
+  --primary-rgb: var(--primary-dark-rgb);
+  --secondary: var(--secondary-dark);
+  --secondary-rgb: var(--secondary-dark-rgb);
+  --background: var(--background-dark);
+  --surface: var(--surface-dark);
+  --text-primary: var(--text-primary-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --border: var(--border-dark);
+  --error: var(--error-dark);
+  --error-rgb: var(--error-dark-rgb);
+  --success: var(--success-dark);
+  --success-rgb: var(--success-dark-rgb);
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* Utility classes */
+.text-center { text-align: center; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); } 

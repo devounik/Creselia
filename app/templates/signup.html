@@ -10,13 +10,13 @@
         align-items: center;
         justify-content: center;
         padding: 2rem;
-        background: radial-gradient(circle at top right, rgba(121, 40, 202, 0.1), transparent),
-                    radial-gradient(circle at bottom left, rgba(255, 0, 128, 0.1), transparent);
+        background: radial-gradient(circle at top right, rgba(121, 40, 202, 0.05), transparent),
+                    radial-gradient(circle at bottom left, rgba(255, 0, 128, 0.05), transparent);
     }
 
     .auth-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
         border-radius: 16px;
         padding: 2.5rem;
         width: 100%;
@@ -39,11 +39,20 @@
         align-items: center;
         justify-content: center;
         font-size: 2rem;
+        color: white;
+    }
+
+    .auth-header h1 {
+        color: var(--text-color);
+    }
+
+    .auth-header p {
+        color: var(--text-muted);
     }
 
     .password-requirements {
         font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-muted);
         margin-top: 0.5rem;
     }
 
@@ -53,28 +62,43 @@
     }
 
     .form-check-input {
-        background-color: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.2);
+        background-color: var(--input-bg);
+        border-color: var(--border-color);
     }
 
     .form-check-input:checked {
-        background-color: #FF0080;
-        border-color: #FF0080;
+        background-color: var(--info-color);
+        border-color: var(--info-color);
     }
 
     .terms-text {
         font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-muted);
     }
 
     .terms-text a {
-        color: rgba(255, 255, 255, 0.8);
+        color: var(--text-color);
         text-decoration: none;
         transition: all 0.3s ease;
     }
 
     .terms-text a:hover {
-        color: white;
+        color: var(--info-color);
+    }
+
+    .alert {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    .alert-danger {
+        border-color: var(--danger-color);
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .form-text {
+        color: var(--text-muted) !important;
     }
 </style>
 {% endblock %}
@@ -87,7 +111,7 @@
                 <i class="bi bi-database"></i>
             </div>
             <h1 class="h4 mb-2">Create an Account</h1>
-            <p class="text-white-50">Join us to start converting natural language to SQL</p>
+            <p class="text-muted">Join us to start converting natural language to SQL</p>
         </div>
 
         <form method="POST" action="/api/auth/signup">
@@ -113,12 +137,14 @@
             <div class="mb-3">
                 <label for="email" class="form-label">Email address</label>
                 <input type="email" class="form-control" id="email" name="email" required>
-                <div class="form-text text-white-50">We'll never share your email with anyone else.</div>
+                <div class="form-text">We'll never share your email with anyone else.</div>
             </div>
             
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
+                <div class="password-field">
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
                 <div class="password-requirements">
                     Password must contain:
                     <ul>
@@ -133,7 +159,9 @@
             
             <div class="mb-3">
                 <label for="confirmPassword" class="form-label">Confirm Password</label>
-                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                <div class="password-field">
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                </div>
             </div>
             
             <div class="mb-4">
@@ -149,7 +177,7 @@
         </form>
 
         <div class="text-center">
-            <p class="mb-0 text-white-50">Already have an account? <a href="/login" class="gradient-text text-decoration-none">Log in</a></p>
+            <p class="mb-0 text-muted">Already have an account? <a href="/login" class="gradient-text text-decoration-none">Log in</a></p>
         </div>
     </div>
 </div>
