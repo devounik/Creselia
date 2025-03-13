@@ -100,27 +100,60 @@
         align-self: flex-end;
     }
 
-    .result-table {
-        width: 100%;
+    .result-table-wrapper {
         margin-top: 1rem;
+        overflow-x: auto;
         border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--border-color);
     }
 
-    .result-table th,
-    .result-table td {
-        padding: 0.75rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+    .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        background: var(--background-color-light);
     }
 
     .result-table th {
-        background: rgba(255, 255, 255, 0.05);
-        font-weight: 500;
+        background: var(--primary-color-dark);
+        color: var(--text-color);
+        font-weight: 600;
+        text-align: left;
+        padding: 0.75rem 1rem;
     }
 
-    .result-table tr:nth-child(even) {
-        background: rgba(255, 255, 255, 0.02);
+    .result-table td {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .result-table tr:hover td {
+        background: var(--hover-color);
+    }
+
+    .sql-query {
+        background: var(--primary-color-dark);
+        color: var(--text-color);
+        font-family: 'Fira Code', monospace;
+        font-size: 0.9em;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+        border-left: 3px solid var(--primary-color);
+        padding: 1rem;
+    }
+
+    .query-section {
+        margin: 1rem 0;
+    }
+
+    .query-label {
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .message.ai .message-content:has(.sql-query) {
+        max-width: 90%;
     }
 
     .code-block {
@@ -131,138 +164,136 @@
         font-family: monospace;
         white-space: pre-wrap;
     }
+
+    .message.ai .message-content:has(span) {
+        color: var(--text-color);
+        opacity: 0.8;
+    }
+
+    .message.ai .message-content:has(:contains("Error:")) {
+        color: var(--danger-color);
+        background: rgba(var(--danger-rgb), 0.1);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="chat-container">
-    <div class="chat-header">
-        <div class="connection-info">
-            <i class="bi bi-database db-icon"></i>
-            <div>
-                <h4 class="mb-1">{{ connection.name }}</h4>
-                <p class="text-white-50 mb-0">{{ connection.description }}</p>
+<div class="chat-page">
+    <h1 class="chat-title">{{ connection.name }}</h1>
+    <p class="chat-subtitle">Connect with your {{ connection.database_type }} database to analyze trends, customer behavior, and product performance.</p>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                <div class="message-content">
+                    <p>Hello! I'm your AI assistant. Ask me to query your database.</p>
+                    <p>Connection: {{ connection.name }} (ID: {{ connection.id }})</p>
+                </div>
+            </div>
+            {% for message in messages %}
+                <div class="message {% if message.role == 'user' %}user{% else %}ai{% endif %}">
+                    {{ message.content | safe }}
+                    <span class="message-time">{{ message.timestamp }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="chat-input-wrapper">
+            <div class="chat-input-container">
+                <form class="chat-input" id="chatForm">
+                    <input type="hidden" id="connectionId" value="{{ connection.id }}">
+                    <textarea 
+                        id="messageInput"
+                        name="message" 
+                        placeholder="Ask a question about your data..."
+                        rows="1"
+                        required
+                        oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"
+                    ></textarea>
+                    <button type="submit">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="example-queries">
+                Example: 
+                <a href="#" class="user-query">"Show me top sales from last month"</a>
+                <a href="#" class="user-query">"Find customers who signed up recently"</a>
             </div>
         </div>
     </div>
-
-    <div class="chat-messages" id="chatMessages">
-        <!-- Messages will be added here dynamically -->
-    </div>
-
-    <div class="chat-input">
-        <form id="chatForm" onsubmit="sendMessage(event)">
-            <textarea 
-                class="form-control" 
-                placeholder="Type your SQL query or ask a question in natural language..." 
-                id="messageInput"
-                required
-            ></textarea>
-            <button type="submit" class="btn btn-gradient">
-                <i class="bi bi-send"></i>
-            </button>
-        </form>
-    </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    const chatMessages = document.getElementById('chatMessages');
-    const messageInput = document.getElementById('messageInput');
-    const connectionId = "{{ connection.id }}";
+    // Initialize chat functionality when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeChat();
+    });
 
-    function addMessage(content, isUser = false, timestamp = new Date()) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user' : ''}`;
+    // Initialize chat event listeners
+    function initializeChat() {
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
         
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
-        
-        if (typeof content === 'string') {
-            messageContent.textContent = content;
-        } else if (content.type === 'table_description') {
-            // Handle table description
-            const pre = document.createElement('pre');
-            pre.style.whiteSpace = 'pre-wrap';
-            pre.style.fontFamily = 'monospace';
-            pre.textContent = content.message;
-            messageContent.appendChild(pre);
-        } else if (content.success === false) {
-            messageContent.textContent = content.error || 'An error occurred';
-            messageContent.style.color = '#ff4444';
-        } else if (content.success === true) {
-            // Handle successful SQL query results
-            if (content.message) {
-                const explanation = document.createElement('p');
-                explanation.textContent = content.message;
-                messageContent.appendChild(explanation);
-            }
-            
-            if (content.sql) {
-                const sqlCode = document.createElement('div');
-                sqlCode.className = 'code-block';
-                sqlCode.textContent = content.sql;
-                messageContent.appendChild(sqlCode);
-            }
-            
-            if (content.results && content.results.columns && content.results.rows) {
-                const table = document.createElement('table');
-                table.className = 'result-table';
-                
-                // Add headers
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-                content.results.columns.forEach(column => {
-                    const th = document.createElement('th');
-                    th.textContent = column;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-                
-                // Add data rows
-                const tbody = document.createElement('tbody');
-                content.results.rows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    row.forEach(cell => {
-                        const td = document.createElement('td');
-                        td.textContent = cell === null ? 'NULL' : cell;
-                        tr.appendChild(td);
-                    });
-                    tbody.appendChild(tr);
-                });
-                table.appendChild(tbody);
-                
-                messageContent.appendChild(table);
-            }
-        } else {
-            messageContent.textContent = 'Unexpected response format';
-            messageContent.style.color = '#ff4444';
+        if (chatForm) {
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleMessageSend();
+            });
         }
         
-        messageDiv.appendChild(messageContent);
-        
-        const timeDiv = document.createElement('div');
-        timeDiv.className = 'message-time';
-        timeDiv.textContent = new Date(timestamp).toLocaleTimeString();
-        messageDiv.appendChild(timeDiv);
-        
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (messageInput) {
+            messageInput.addEventListener('keypress', handleKeyPress);
+        }
+
+        // Initialize example query clicks
+        const exampleQueries = document.querySelectorAll('.user-query');
+        exampleQueries.forEach(query => {
+            query.addEventListener('click', function(e) {
+                e.preventDefault();
+                const text = query.textContent.replace(/['"]/g, '');
+                if (messageInput) {
+                    messageInput.value = text;
+                    messageInput.style.height = '';
+                    messageInput.style.height = messageInput.scrollHeight + 'px';
+                    messageInput.focus();
+                }
+            });
+        });
     }
 
-    async function sendMessage(event) {
-        event.preventDefault();
-        const message = messageInput.value.trim();
-        if (!message) return;
+    // Handle keypress events
+    function handleKeyPress(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleMessageSend();
+        }
+    }
+
+    // Handle sending messages
+    async function handleMessageSend() {
+        const input = document.getElementById('messageInput');
+        const connectionInput = document.getElementById('connectionId');
+        
+        if (!input || !connectionInput) return;
+
+        const message = input.value.trim();
+        const connectionId = connectionInput.value;
+        
+        if (!message || !connectionId) return;
+
+        // Clear input and reset height
+        input.value = '';
+        input.style.height = '';
 
         // Add user message
-        addMessage(message, true);
-        messageInput.value = '';
+        addMessageToChat('user', `<div class="message-content">${message}</div>`);
 
         try {
-            console.log('Sending message:', message);
+            // Send message to server
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -275,29 +306,66 @@
             });
 
             if (!response.ok) {
-                throw new Error(`Server responded with status ${response.status}: ${response.statusText}`);
+                throw new Error('Network response was not ok');
             }
 
             const data = await response.json();
-            console.log('Received response:', data);
-            addMessage(data);
-
+            handleServerResponse(data);
         } catch (error) {
-            console.error('Error in sendMessage:', error);
-            addMessage({
-                success: false,
-                error: error.message
+            handleServerResponse({ 
+                error: 'Failed to get response from server. Please try again.' 
             });
         }
+
+        // Scroll to bottom
+        scrollToBottom();
     }
 
-    // Handle textarea height
-    messageInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
+    // Handle server response
+    function handleServerResponse(data) {
+        let content = '';
+        
+        if (data.error) {
+            content = `<div class="message-content">Error: ${data.error}</div>`;
+        } else {
+            content = '<div class="message-content">';
+            
+            // Add SQL query in a code block
+            if (data.sql) {
+                content += `<div class="code-block sql-query">SQL Query:<br>${data.sql}</div>`;
+            }
+            
+            // Add results or message
+            if (data.content) {
+                content += data.content;
+            } else if (data.message) {
+                content += data.message;
+            }
+            
+            content += '</div>';
+        }
 
-    // Add initial welcome message
-    addMessage('Hello! I\'m your SQL assistant. You can ask me questions about your database in natural language, or write SQL queries directly. How can I help you today?');
+        // Add AI message
+        addMessageToChat('ai', content);
+    }
+
+    // Add message to chat
+    function addMessageToChat(role, content) {
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) return;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
+        messageDiv.innerHTML = content;
+        chatMessages.appendChild(messageDiv);
+    }
+
+    // Scroll chat to bottom
+    function scrollToBottom() {
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
 </script>
 {% endblock %} 

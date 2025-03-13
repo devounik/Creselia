@@ -196,17 +196,35 @@ class ChatService:
                 base_response["error"] = error_msg
             
             if results:
-                # Limit the number of rows returned
-                max_rows = 1000
-                rows = results.get("rows", [])[:max_rows]
+                # Format results as HTML table
+                table_html = "<div class='result-table-wrapper'><table class='result-table'>"
                 
-                base_response["results"] = {
-                    "columns": [self._sanitize_value(col) for col in results.get("columns", [])],
-                    "rows": [[self._sanitize_value(cell) for cell in row] for row in rows],
-                    "total_rows": len(results.get("rows", [])),
-                    "returned_rows": len(rows),
-                    "truncated": len(results.get("rows", [])) > max_rows
-                }
+                # Add headers
+                if results.get("columns"):
+                    table_html += "<thead><tr>"
+                    for col in results["columns"]:
+                        table_html += f"<th>{self._sanitize_value(col)}</th>"
+                    table_html += "</tr></thead>"
+                
+                # Add rows
+                if results.get("rows"):
+                    table_html += "<tbody>"
+                    for row in results["rows"]:
+                        table_html += "<tr>"
+                        for cell in row:
+                            table_html += f"<td>{self._sanitize_value(cell)}</td>"
+                        table_html += "</tr>"
+                    table_html += "</tbody>"
+                
+                table_html += "</table></div>"
+                
+                # Add summary text
+                total_rows = len(results.get("rows", []))
+                if total_rows > 0:
+                    summary = f"Found {total_rows} result{'s' if total_rows != 1 else ''}:"
+                    base_response["content"] = f"{summary}<br>{table_html}"
+                else:
+                    base_response["content"] = "No matching records found."
             
             # Verify the response is JSON serializable
             json.dumps(base_response)

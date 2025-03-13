@@ -1,0 +1,44 @@
+SQL Practice Questions (Easy to Hard)
+
+-- Easy Questions
+1. List all departments in alphabetical order.
+2. Show the total number of students.
+3. List all active courses.
+4. Find the average GPA of all students.
+5. Count how many students are in each department.
+6. List all students with a GPA above 3.5.
+7. Show the most expensive course fee.
+8. Find all departments with budgets over 400000.
+9. List students in semester 1.
+10. Show all courses with more than 50 maximum capacity.
+
+-- Medium Questions
+11. Calculate the average grade for each course.
+12. Find departments with more than 5 students.
+13. List students who are enrolled in more than 4 courses.
+14. Show the top 5 courses with the highest average grades.
+15. Calculate the success rate (grades > 3.0) for each course.
+16. Find departments where all courses are active.
+17. List students who have grades above the average grade in their department.
+18. Show courses with the highest enrollment numbers.
+19. Find departments with the highest average student GPA.
+20. Calculate the total course fees for each department.
+
+-- Hard Questions
+21. Find students who are enrolled in all courses from their department.
+22. Calculate the percentage of active students in each department who have a GPA above the university average.
+23. Identify courses where the average grade is significantly higher (>0.5) than the department's average grade.
+24. Find departments where the average course fee is higher than the university-wide average course fee.
+25. List students who have improved their grades consistently (each subsequent enrollment has a higher grade).
+26. Calculate the correlation between course fees and average grades.
+27. Find departments where more than 50% of students have a GPA above 3.5.
+28. Identify potential overbooked courses (where enrollment count exceeds max_capacity).
+29. Calculate semester-wise GPA progression for each student.
+30. Find courses that have a significantly different average grade between different departments.
+
+-- Expert Questions
+31. Analyze the grade distribution patterns across departments and identify any anomalies.
+32. Calculate the ROI (Return on Investment) for each department based on budget per student and average GPA.
+33. Identify any potential grade inflation by comparing historical grade averages.
+34. Create a comprehensive ranking system for departments based on multiple factors (avg GPA, enrollment rates, course diversity).
+35. Analyze the correlation between department establishment date and various performance metrics. 

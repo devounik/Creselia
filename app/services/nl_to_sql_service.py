@@ -51,11 +51,16 @@ Instructions:
    - Use GROUP BY for aggregations
    - Use HAVING for filtering aggregated results
    - Use ORDER BY for sorting when relevant
-3. When joining tables:
+3. When using aggregate functions (COUNT, SUM, AVG, etc.):
+   - For simple counts, use 'SELECT COUNT(*) AS count FROM table'
+   - Do not mix non-aggregated columns with aggregates unless using GROUP BY
+   - Always give meaningful alias names to aggregated columns
+   - When counting specific columns, use COUNT(column_name)
+4. When joining tables:
    - Always include the table in the FROM clause before referencing it
    - Properly specify JOIN conditions
    - Do not reference tables that haven't been joined
-4. Return ONLY the SQL query without any explanation or comments
+5. Return ONLY the SQL query without any explanation or comments
 
 Question: {question}
 
@@ -127,8 +132,12 @@ Generate a SQL query that answers this question. Return ONLY the SQL query, noth
             query = re.sub(r'^\d+\.\s*', '', query)
             query = re.sub(r'--.*$', '', query, flags=re.MULTILINE)
             
-            # Fix common SQL keyword abbreviations
+            # Remove escape characters from column names
+            query = re.sub(r'\\([_\-%])', r'\1', query)
+            
+            # Fix common SQL keyword typos and abbreviations
             replacements = {
+                r'\bSELCT\b': 'SELECT',
                 r'\bSEL\b': 'SELECT',
                 r'\bFR\b': 'FROM',
                 r'\bWH\b': 'WHERE',
@@ -139,7 +148,25 @@ Generate a SQL query that answers this question. Return ONLY the SQL query, noth
                 r'\bLJ\b': 'LEFT JOIN',
                 r'\bRJ\b': 'RIGHT JOIN',
                 r'\bIJ\b': 'INNER JOIN',
-                r'\bDIST\b': 'DISTINCT'
+                r'\bDIST\b': 'DISTINCT',
+                # Fix common typos
+                r'\bselct\b': 'SELECT',
+                r'\bSELct\b': 'SELECT',
+                r'\bSlct\b': 'SELECT',
+                r'\bSELECt\b': 'SELECT',
+                r'\bFROM\s+(\w+)\s+WHERE\s+(\w+)\s+JOIN\b': r'FROM \1 JOIN \2 WHERE',  # Fix incorrect JOIN placement
+                r'\bGROUPBY\b': 'GROUP BY',
+                r'\bORDERBY\b': 'ORDER BY',
+                # Fix aggregate function syntax
+                r'(\w+)\.count\(\*\)': r'COUNT(*)',
+                r'(\w+)\.sum\(': r'SUM(',
+                r'(\w+)\.avg\(': r'AVG(',
+                r'(\w+)\.min\(': r'MIN(',
+                r'(\w+)\.max\(': r'MAX(',
+                # Fix mixed aggregate and non-aggregate columns
+                r'SELECT\s+\w+\.\w+\s*,\s*COUNT\(\*\)': r'SELECT COUNT(*)',
+                r'SELECT\s+\w+\.\w+\s*,\s*COUNT\(\w+\)': r'SELECT COUNT(*)',
+                r'Sel\s+\w+\.\w+\s*,\s*Count\(\*\)': r'SELECT COUNT(*)'
             }
             
             for pattern, replacement in replacements.items():
