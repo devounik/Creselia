@@ -8,12 +8,14 @@ from app.services.email_service import ResetCodeService
 from app.schemas.auth import UserCreate, Token, UserResponse
 from app.core.config import settings
 import secrets
+import logging
 
 # Create two routers: one for web routes and one for API routes
 web_router = APIRouter(tags=["web"])
 api_router = APIRouter(prefix="/api/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
 reset_code_service = ResetCodeService()
+logger = logging.getLogger(__name__)
 
 # Web routes
 @web_router.get("/", response_class=HTMLResponse)
@@ -226,10 +228,15 @@ async def login(
     try:
         auth_service = AuthService(db)
         token = await auth_service.authenticate_user(email, password)
+        
         if not token:
             return templates.TemplateResponse(
                 "login.html",
-                {"request": request, "error": "Incorrect email or password"},
+                {
+                    "request": request, 
+                    "error": "Incorrect email or password",
+                    "email": email  # Preserve the email for better UX
+                },
                 status_code=status.HTTP_401_UNAUTHORIZED
             )
         
@@ -245,9 +252,14 @@ async def login(
         return response
         
     except Exception as e:
+        logger.error(f"Login error: {str(e)}")
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "error": str(e)},
+            {
+                "request": request, 
+                "error": "An error occurred during login. Please try again.",
+                "email": email  # Preserve the email for better UX
+            },
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

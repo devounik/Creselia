@@ -49,7 +49,7 @@ async def validate_token(token: str) -> Optional[dict]:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            algorithms=[settings.ALGORITHM]
         )
         
         # Check token expiration
@@ -95,7 +95,12 @@ async def require_auth(
 ):
     """Require authentication for protected routes"""
     if not current_user:
-        # Check rate limiting
+        # Don't redirect login/auth related paths
+        path = request.url.path
+        if path.startswith("/login") or path.startswith("/api/auth"):
+            return None
+            
+        # Check rate limiting for protected routes
         client_ip = request.client.host
         if is_rate_limited(client_ip):
             raise HTTPException(

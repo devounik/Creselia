@@ -1,7 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Optional, List
 from functools import lru_cache
-import secrets
 
 class Settings(BaseSettings):
     # API Settings
@@ -9,7 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AI SQL Chatbot"
     
     # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     SECURE_COOKIES: bool = False  # Set to True in production
@@ -19,14 +18,14 @@ class Settings(BaseSettings):
     
     # Hugging Face
     HUGGINGFACE_API_KEY: str
-    HUGGINGFACE_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.2"  # Using Mistral for SQL generation
+    HUGGINGFACE_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.2"
     
     # MySQL Database Settings
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = "123456789"
-    MYSQL_DATABASE: str = "collegeproject"
+    MYSQL_HOST: str
+    MYSQL_PORT: int
+    MYSQL_USER: str
+    MYSQL_PASSWORD: str
+    MYSQL_DATABASE: str
     
     @property
     def MYSQL_URL(self) -> str:
@@ -38,16 +37,15 @@ class Settings(BaseSettings):
     MIN_CONNECTIONS_COUNT: int = 1
     
     # JWT settings
-    JWT_SECRET_KEY: str = secrets.token_urlsafe(32)  # Generate a secure secret key
-    JWT_ALGORITHM: str = "HS256"
+    JWT_SECRET_KEY: str
     
-    # Email Settings
-    MAIL_USERNAME: str = ""
-    MAIL_PASSWORD: str = ""
-    MAIL_FROM: str = "noreply@creseliaai.com"
-    MAIL_PORT: int = 587
-    MAIL_SERVER: str = "smtp.gmail.com"
-    MAIL_FROM_NAME: str = "CreseliaAI"
+    # Email Settings (Optional)
+    MAIL_USERNAME: Optional[str] = None
+    MAIL_PASSWORD: Optional[str] = None
+    MAIL_FROM: Optional[str] = None
+    MAIL_PORT: Optional[int] = None
+    MAIL_SERVER: Optional[str] = None
+    MAIL_FROM_NAME: Optional[str] = None
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
     
