@@ -135,4 +135,24 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error creating user"
-            ) 
+            )
+
+    def update_password(self, user_id: int, new_password: str) -> bool:
+        """Update a user's password"""
+        try:
+            user = self.get_user_by_id(user_id)
+            if not user:
+                logger.warning(f"Password update failed: User not found with ID {user_id}")
+                return False
+            
+            hashed_password = get_password_hash(new_password)
+            user.hashed_password = hashed_password
+            self.db.commit()
+            
+            logger.info(f"Successfully updated password for user ID: {user_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating password: {e}")
+            self.db.rollback()
+            return False 

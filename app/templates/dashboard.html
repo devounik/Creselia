@@ -219,6 +219,22 @@
         color: white;
         border-color: #dc3545;
     }
+
+    .connection-card .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-color);
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .connection-card .text-muted {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
 </style>
 {% endblock %}
 
@@ -236,6 +252,9 @@
         <div class="col-md-4 mb-4">
             <div class="connection-card card">
                 <div class="connection-details">
+                    <div class="mb-2">
+                        <strong>Name:</strong> {{ connection.name }}
+                    </div>
                     <div class="mb-2">
                         <strong>Host:</strong> {{ connection.host }}
                     </div>

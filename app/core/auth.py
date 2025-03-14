@@ -103,9 +103,10 @@ async def require_auth(
                 detail="Too many failed attempts. Please try again later."
             )
             
-        return RedirectResponse(
-            url=f"/unauthorized?next={request.url.path}",
-            status_code=status.HTTP_303_SEE_OTHER
+        raise HTTPException(
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            detail="Authentication required",
+            headers={"Location": f"/unauthorized?next={request.url.path}"}
         )
         
     return current_user

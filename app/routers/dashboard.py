@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -26,5 +26,12 @@ async def dashboard(
             "user": current_user,
             "connections": connections
         })
+    except HTTPException as e:
+        if e.status_code in (status.HTTP_307_TEMPORARY_REDIRECT, status.HTTP_401_UNAUTHORIZED):
+            return RedirectResponse(
+                url=e.headers.get("Location", "/unauthorized"),
+                status_code=status.HTTP_303_SEE_OTHER
+            )
+        raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

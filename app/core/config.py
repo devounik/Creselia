@@ -41,6 +41,19 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = secrets.token_urlsafe(32)  # Generate a secure secret key
     JWT_ALGORITHM: str = "HS256"
     
+    # Email Settings
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = "noreply@creseliaai.com"
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_FROM_NAME: str = "CreseliaAI"
+    MAIL_TLS: bool = True
+    MAIL_SSL: bool = False
+    
+    # Password Reset Settings
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
