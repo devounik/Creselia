@@ -42,6 +42,7 @@ ENV/
 .env.test
 .env.production
 encryption.key
+app/core/encryption.key
 
 # Jupyter Notebook
 .ipynb_checkpoints
